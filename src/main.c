@@ -3,10 +3,20 @@
 #include <stdlib.h>
 #include <stdint.h>
     
-typedef int8_t byte_t;
-typedef int64_t word_t;
+typedef uint8_t byte_t;
+typedef uint64_t word_t;
 
-typedef enum { INST_NOP, INST_PUSH, INST_ADD, INST_HALT } inst_type_t;
+typedef enum {
+    INST_NOP,
+    INST_PUSH,
+    
+    INST_IADD,
+    INST_ISUB,
+    INST_IMUL,
+    INST_IDIV,
+    
+    INST_HALT
+} inst_type_t;
 
 typedef struct {
     byte_t inst_type;
@@ -17,7 +27,7 @@ typedef struct {
 word_t stack[MAX_STACK_SIZE] = {0};
 word_t stack_size = 0;
 
-void push(word_t value)
+void stack_push(word_t value)
 {
     if (stack_size > MAX_STACK_SIZE) {
 	fprintf(stderr, "ERROR: Stack overflow\n");
@@ -26,7 +36,7 @@ void push(word_t value)
     stack[stack_size++] = value;
 }
 
-word_t pop()
+word_t stack_pop()
 {
     if (stack_size == 0) {
 	fprintf(stderr, "ERROR: Stack underflow\n");
@@ -55,7 +65,7 @@ int main(void)
 	size_t iota = 0;
 	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = 5 };
 	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = 7 };
-	program[iota++] = (inst_t) { .inst_type = INST_ADD };
+	program[iota++] = (inst_t) { .inst_type = INST_IADD };
 	program[iota++] = (inst_t) { .inst_type = INST_HALT };
     }
     
@@ -68,19 +78,41 @@ int main(void)
 	    inst_ptr++;
 	    break;
 	case INST_PUSH:
-	    push(op);
+	    stack_push(op);
 	    inst_ptr++;
 	    break;
-	case INST_ADD:
+	case INST_IADD: {
 	    if (stack_size < 2) {
 		fprintf(stderr, "ERROR: instruction `add` requires 2 arguments on the stack\n");
 		exit(1);
 	    }
-	    word_t b = pop();
-	    word_t a = pop();
-	    push(a + b);
+	    int64_t b = (int64_t)stack_pop();
+	    int64_t a = (int64_t)stack_pop();
+	    stack_push(a + b);
 	    inst_ptr++;
 	    break;
+	}
+	case INST_ISUB: {
+	    int64_t b = (int64_t)stack_pop();
+	    int64_t a = (int64_t)stack_pop();
+	    stack_push(a - b);
+	    inst_ptr++;
+	    break;
+	}
+	case INST_IMUL: {
+	    int64_t b = (int64_t)stack_pop();
+	    int64_t a = (int64_t)stack_pop();
+	    stack_push(a * b);
+	    inst_ptr++;
+	    break;
+	}
+	case INST_IDIV: {
+	    int64_t b = (int64_t)stack_pop();
+	    int64_t a = (int64_t)stack_pop();
+	    stack_push(a / b);
+	    inst_ptr++;
+	    break;
+	}
 	case INST_HALT:
 	    is_halt = 1;
 	    break;
