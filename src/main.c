@@ -4,7 +4,11 @@
 #include <stdint.h>
     
 typedef uint8_t byte_t;
-typedef uint64_t word_t;
+typedef union {
+    uint64_t as_u64;
+    int64_t as_i64;
+    double as_f64;
+} word_t;
 
 typedef enum {
     INST_NOP,
@@ -25,7 +29,7 @@ typedef struct {
 
 #define MAX_STACK_SIZE 1024
 word_t stack[MAX_STACK_SIZE] = {0};
-word_t stack_size = 0;
+uint64_t stack_size = 0;
 
 void stack_push(word_t value)
 {
@@ -36,7 +40,7 @@ void stack_push(word_t value)
     stack[stack_size++] = value;
 }
 
-word_t stack_pop()
+word_t stack_pop(void)
 {
     if (stack_size == 0) {
 	fprintf(stderr, "ERROR: Stack underflow\n");
@@ -47,15 +51,15 @@ word_t stack_pop()
 
 #define MAX_PROGRAM_SIZE 1024
 inst_t program[MAX_PROGRAM_SIZE] = {0};
-word_t inst_ptr = 0;
+uint64_t inst_ptr = 0;
 
 void stack_dump()
 {
     printf("Stack:\n");
     if (stack_size == 0)
 	printf("  [empty]\n");
-    for (word_t i = 0; i < stack_size; i++)
-	printf("  %ld\n", stack[i]);
+    for (uint64_t i = 0; i < stack_size; i++)
+	printf("  %ld\n", stack[i].as_u64);
     printf("------------------------------\n");
 }
 
@@ -63,8 +67,8 @@ int main(void)
 {
     {
 	size_t iota = 0;
-	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = 5 };
-	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = 7 };
+	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = { .as_i64 = 5 } };
+	program[iota++] = (inst_t) { .inst_type = INST_PUSH, .op = { .as_i64 = 7 } };
 	program[iota++] = (inst_t) { .inst_type = INST_IADD };
 	program[iota++] = (inst_t) { .inst_type = INST_HALT };
     }
@@ -86,30 +90,30 @@ int main(void)
 		fprintf(stderr, "ERROR: instruction `add` requires 2 arguments on the stack\n");
 		exit(1);
 	    }
-	    int64_t b = (int64_t)stack_pop();
-	    int64_t a = (int64_t)stack_pop();
-	    stack_push(a + b);
+	    int64_t b = stack_pop().as_i64;
+	    int64_t a = stack_pop().as_i64;
+	    stack_push((word_t) { .as_i64 = a + b });
 	    inst_ptr++;
 	    break;
 	}
 	case INST_ISUB: {
-	    int64_t b = (int64_t)stack_pop();
-	    int64_t a = (int64_t)stack_pop();
-	    stack_push(a - b);
+	    int64_t b = stack_pop().as_i64;
+	    int64_t a = stack_pop().as_i64;
+	    stack_push((word_t) { .as_i64 = a - b });
 	    inst_ptr++;
 	    break;
 	}
 	case INST_IMUL: {
-	    int64_t b = (int64_t)stack_pop();
-	    int64_t a = (int64_t)stack_pop();
-	    stack_push(a * b);
+	    int64_t b = stack_pop().as_i64;
+	    int64_t a = stack_pop().as_i64;
+	    stack_push((word_t) { .as_i64 = a * b });
 	    inst_ptr++;
 	    break;
 	}
 	case INST_IDIV: {
-	    int64_t b = (int64_t)stack_pop();
-	    int64_t a = (int64_t)stack_pop();
-	    stack_push(a / b);
+	    int64_t b = stack_pop().as_i64;
+	    int64_t a = stack_pop().as_i64;
+	    stack_push((word_t) { .as_i64 = a / b });
 	    inst_ptr++;
 	    break;
 	}
