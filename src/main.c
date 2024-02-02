@@ -13,7 +13,8 @@ typedef union {
 typedef enum {
     INST_NOP,
     INST_PUSH,
-    INST_GET,
+    INST_GET, // absolute address
+    INST_DUP, // relative address
     INST_SET,
     INST_IADD,
     INST_ISUB,
@@ -26,7 +27,8 @@ typedef enum {
     INST_ILE,
     INST_JMP,
     INST_JNZ,    
-    INST_HALT
+    INST_HALT,
+    INST_PRINT_INT // temporary for debug purposes
 } inst_type_t;
 
 typedef struct {
@@ -40,6 +42,7 @@ const char *inst_type_to_cstr(inst_type_t type)
     case INST_NOP: return "INST_NOP";
     case INST_PUSH: return "INST_PUSH";
     case INST_GET: return "INST_GET";
+    case INST_DUP: return "INST_DUP";
     case INST_SET: return "INST_SET";
     case INST_IADD: return "INST_IADD";
     case INST_ISUB: return "INST_ISUB";
@@ -53,6 +56,7 @@ const char *inst_type_to_cstr(inst_type_t type)
     case INST_JMP: return "INST_JMP";
     case INST_JNZ: return "INST_JNZ";
     case INST_HALT: return "INST_HALT";
+    case INST_PRINT_INT: return "INST_PRINT_INT";
     default: assert(0 && "unreachable");
     }
 
@@ -113,6 +117,7 @@ void add_inst(inst_t inst)
 #define MAKE_NOP (inst_t) { .inst_type = INST_NOP }
 #define MAKE_PUSH_I64(opr) (inst_t) { .type = INST_PUSH, .op = { .as_i64 = (opr) } }
 #define MAKE_GET(opr) (inst_t) { .type = INST_GET, .op = { .as_u64 = (opr) } }
+#define MAKE_DUP(opr) (inst_t) { .type = INST_DUP, .op = { .as_u64 = (opr) } }
 #define MAKE_SET(opr) (inst_t) { .type = INST_SET, .op = { .as_u64 = (opr) } }
 #define MAKE_IADD (inst_t) { .type = INST_IADD }
 #define MAKE_ISUB (inst_t) { .type = INST_ISUB }
@@ -126,30 +131,31 @@ void add_inst(inst_t inst)
 #define MAKE_JMP(opr) (inst_t) { .type = INST_JMP, .op = { .as_u64 = (opr) } }
 #define MAKE_JNZ(opr) (inst_t) { .type = INST_JNZ, .op = { .as_u64 = (opr) } }
 #define MAKE_HALT (inst_t) { .type = INST_HALT }
+#define MAKE_PRINT_INT (inst_t) { .type = INST_PRINT_INT }
 
 int main(void)
 {
-    add_inst(MAKE_PUSH_I64(10));
+    add_inst(MAKE_PUSH_I64(0));
     add_inst(MAKE_PUSH_I64(1));
-    add_inst(MAKE_GET(0));
-    add_inst(MAKE_GET(1));
-    add_inst(MAKE_ILT);
-    add_inst(MAKE_JNZ(12));
-    add_inst(MAKE_GET(1));
-    add_inst(MAKE_GET(1));
-    add_inst(MAKE_PUSH_I64(1));
+    add_inst(MAKE_DUP(1));
+    add_inst(MAKE_DUP(1));
     add_inst(MAKE_IADD);
-    add_inst(MAKE_SET(1));
+    add_inst(MAKE_DUP(0));
+    add_inst(MAKE_PRINT_INT);
+    add_inst(MAKE_DUP(0));
+    add_inst(MAKE_PUSH_I64(100));
+    add_inst(MAKE_IGT);
+    add_inst(MAKE_JNZ(12));
     add_inst(MAKE_JMP(2));
     add_inst(MAKE_HALT);
-    
+
     int is_halt = 0;
     while (!is_halt) {
 	if (inst_ptr > program_size) {
-	    fprintf(stderr, "ERROR: Illegal instruction address\n");
+	    fprintf(stderr, "ERROR: Illegal instruction address: %lu\n", inst_ptr);
 	    exit(1);
 	}
-	
+
 	byte_t inst_type = program[inst_ptr].type;
 	word_t op = program[inst_ptr].op;
 	switch ((inst_type_t)inst_type) {
@@ -166,6 +172,16 @@ int main(void)
 	    stack_push(stack[op.as_u64]);
 	    inst_ptr++;
 	    break;
+
+	case INST_DUP: {
+	    int64_t addr = stack_size - op.as_u64 - 1;
+	    if (addr < 0) {
+		fprintf(stderr, "ERROR: illegal stack address on instruction `dup`\n");
+		exit(1);
+	    }
+	    stack_push(stack[addr]);
+	    inst_ptr++;
+	} break;
 
 	case INST_SET:
 	    stack_set(op.as_u64, stack_pop());
@@ -253,13 +269,16 @@ int main(void)
 	case INST_HALT:
 	    is_halt = 1;
 	    break;
+
+	case INST_PRINT_INT:
+	    printf("%ld\n", stack_pop().as_i64);
+	    inst_ptr++;
+	    break;
 	    
 	default:
 	    assert(0 && "unreachable");
 	}
     }
-
-    stack_dump();
     
     return 0;
 }
