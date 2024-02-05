@@ -201,6 +201,16 @@ int main(void)
 	    else
 		inst_ptr++;
 	    break;
+
+	case INST_ALLOC:
+	    stack_push((word_t) { .as_u64 = (uint64_t)malloc(op.as_u64) });
+	    inst_ptr++;
+	    break;
+
+	case INST_FREE:
+	    free((void*)stack_pop().as_u64);
+	    inst_ptr++;
+	    break;
 	    
 	case INST_HALT:
 	    is_halt = 1;
