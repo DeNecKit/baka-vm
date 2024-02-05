@@ -20,6 +20,8 @@ typedef enum {
     INST_JNZ,
     INST_ALLOC,
     INST_FREE,
+    INST_READ,
+    INST_WRITE,
     INST_HALT,
     INST_PRINT_INT // temporary for debug purposes
 } inst_type_t;
@@ -45,6 +47,8 @@ const char *inst_type_to_cstr(inst_type_t type)
     case INST_JNZ: return "INST_JNZ";
     case INST_ALLOC: return "INST_ALLOC";
     case INST_FREE: return "INST_FREE";
+    case INST_READ: return "INST_READ";
+    case INST_WRITE: return "INST_WRITE";
     case INST_HALT: return "INST_HALT";
     case INST_PRINT_INT: return "INST_PRINT_INT";
     default: assert(0 && "unreachable");
@@ -69,6 +73,8 @@ const char *inst_type_to_cstr(inst_type_t type)
 #define MAKE_JNZ(opr) (inst_t) { .type = INST_JNZ, .op = { .as_u64 = (opr) } }
 #define MAKE_ALLOC(opr) (inst_t) { .type = INST_ALLOC, .op = { .as_u64 = (opr) } }
 #define MAKE_FREE (inst_t) { .type = INST_FREE }
+#define MAKE_READ (inst_t) { .type = INST_READ }
+#define MAKE_WRITE (inst_t) { .type = INST_WRITE }
 #define MAKE_HALT (inst_t) { .type = INST_HALT }
 #define MAKE_PRINT_INT (inst_t) { .type = INST_PRINT_INT }
 

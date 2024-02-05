@@ -71,18 +71,14 @@ void add_inst(inst_t inst)
 
 int main(void)
 {
-    add_inst(MAKE_PUSH_I64(0));
-    add_inst(MAKE_PUSH_I64(1));
-    add_inst(MAKE_DUP(1));
-    add_inst(MAKE_DUP(1));
-    add_inst(MAKE_IADD);
+    add_inst(MAKE_ALLOC(1));
     add_inst(MAKE_DUP(0));
+    add_inst(MAKE_PUSH_I64(15));
+    add_inst(MAKE_WRITE);
+    add_inst(MAKE_DUP(0));
+    add_inst(MAKE_READ);
     add_inst(MAKE_PRINT_INT);
-    add_inst(MAKE_DUP(0));
-    add_inst(MAKE_PUSH_I64(100));
-    add_inst(MAKE_IGT);
-    add_inst(MAKE_JNZ(12));
-    add_inst(MAKE_JMP(2));
+    add_inst(MAKE_FREE);
     add_inst(MAKE_HALT);
 
     int is_halt = 0;
@@ -211,6 +207,18 @@ int main(void)
 	    free((void*)stack_pop().as_u64);
 	    inst_ptr++;
 	    break;
+
+	case INST_READ:
+	    stack_push((word_t) { .as_u64 = *(byte_t*)stack_pop().as_u64 });
+	    inst_ptr++;
+	    break;
+
+	case INST_WRITE: {
+	    byte_t value = (byte_t)stack_pop().as_u64;
+	    byte_t *addr = (byte_t*)stack_pop().as_u64;
+	    *addr = value;
+	    inst_ptr++;
+	} break;
 	    
 	case INST_HALT:
 	    is_halt = 1;
